@@ -26,6 +26,62 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
+// --- IndexedDB Setup ---
+const DB_NAME = 'DronacharyaGymDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'inquiries';
+
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (e: any) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+  });
+};
+
+const saveInquiry = async (data: any) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.add({ ...data, createdAt: new Date().toISOString() });
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const getInquiries = async (): Promise<any[]> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const data = request.result;
+      data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      resolve(data);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const deleteInquiry = async (id: number) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
 function AnimatedCounter({ end, suffix = "", isFloat = false }: { end: number, suffix?: string, isFloat?: boolean }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
@@ -86,7 +142,7 @@ function ThankYouPage() {
 
 function LandingPage() {
   const [dailyOffer, setDailyOffer] = useState("Join today and get 20% off on annual membership!");
-  const [selectedService, setSelectedService] = useState<{title: string, details: string[]} | null>(null);
+  const [selectedService, setSelectedService] = useState<{title: string, details: string[], icon?: React.ReactNode} | null>(null);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
@@ -117,11 +173,10 @@ function LandingPage() {
     
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'inquiries'), {
+      await saveInquiry({
         name,
         phone,
         serviceInterest,
-        createdAt: serverTimestamp(),
         status: 'new'
       });
       setName('');
@@ -138,7 +193,7 @@ function LandingPage() {
 
   const faqs = [
     { q: "What are the gym timings?", a: "We are open from 9:30 AM to 6:30 PM, Monday to Saturday." },
-    { q: "Is this a unisex gym?", a: "Yes, Dronacharya The Gym is a premium unisex fitness center welcoming both men and women." },
+    { q: "Is this a unisex gym?", a: "Yes, DRONACHARYA The Gym is a premium unisex fitness center welcoming both men and women." },
     { q: "Do you provide personal training?", a: "Absolutely! We have a 'Get Your Own Trainer' program where certified coaches guide you 1-on-1 for faster results." },
     { q: "Where exactly is the gym located?", a: "We are conveniently located near Bank of Baroda, on the Main Burari Road, Sant Nagar." },
     { q: "Are there separate batches for Aerobics and Crossfit?", a: "Yes, we have dedicated zones and specific time slots for Aerobics, Cardio, and Crossfit sessions." },
@@ -159,9 +214,9 @@ function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-2">
-              <Dumbbell className="w-8 h-8 text-yellow-400" />
+              <Dumbbell className="w-10 h-10 text-yellow-400 shrink-0" />
               <div className="flex flex-col">
-                <span className="text-xl font-black tracking-wider uppercase text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-none">
+                <span className="text-xl sm:text-2xl font-black tracking-wider uppercase text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-none">
                   DRONACHARYA THE GYM
                 </span>
                 <span className="text-[10px] font-bold text-white tracking-widest uppercase mt-1">
@@ -206,8 +261,8 @@ function LandingPage() {
             transition={{ duration: 0.8 }}
             className="max-w-3xl"
           >
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase leading-[1] tracking-tighter mb-6">
-              Dronacharya <br />
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[1] tracking-tighter mb-6 break-words">
+              DRONACHARYA <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C00] to-orange-400">
                 The Gym
               </span>
@@ -224,13 +279,13 @@ function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <a
                 href="#trial"
-                className="inline-flex items-center justify-center px-8 py-4 bg-[#FF8C00] text-black font-black uppercase tracking-widest hover:bg-white transition-colors text-lg shadow-[0_0_20px_rgba(255,140,0,0.6)] rounded-md animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] ripple-btn"
+                className="inline-flex items-center justify-center px-6 py-4 sm:px-8 bg-[#FF8C00] text-black font-black uppercase tracking-widest hover:bg-white transition-colors text-base sm:text-lg shadow-[0_0_20px_rgba(255,140,0,0.6)] rounded-md animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] ripple-btn text-center"
               >
                 Book Free Trial
               </a>
               <a
                 href="#pricing"
-                className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/20 hover:border-white transition-colors font-bold uppercase tracking-widest text-lg rounded-md backdrop-blur-sm ripple-btn"
+                className="inline-flex items-center justify-center px-6 py-4 sm:px-8 border-2 border-white/20 hover:border-white transition-colors font-bold uppercase tracking-widest text-base sm:text-lg rounded-md backdrop-blur-sm ripple-btn text-center"
               >
                 View Membership
               </a>
@@ -604,9 +659,9 @@ function LandingPage() {
             {/* Column 1 */}
             <div>
               <div className="flex items-center gap-2 mb-6">
-                <Dumbbell className="w-8 h-8 text-yellow-400" />
+                <Dumbbell className="w-10 h-10 text-yellow-400 shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-xl font-black tracking-wider uppercase text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-none">
+                  <span className="text-xl sm:text-2xl font-black tracking-wider uppercase text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-none">
                     DRONACHARYA THE GYM
                   </span>
                   <span className="text-[10px] font-bold text-white tracking-widest uppercase mt-1">
@@ -648,7 +703,7 @@ function LandingPage() {
 
           <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-[#708090] text-sm">
-              &copy; {new Date().getFullYear()} Dronacharya The Gym | Burari's Number 1 Fitness Chain
+              &copy; {new Date().getFullYear()} Dronacharya The Gym. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm">
               <a href="#services" className="text-[#708090] hover:text-[#FF8C00] transition-colors">Services</a>
@@ -666,7 +721,7 @@ function LandingPage() {
         href="https://wa.me/919818187123"
         target="_blank"
         rel="noopener noreferrer"
-        title="Chat with Dronacharya Gym"
+        title="Chat with DRONACHARYA Gym"
         className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-[0_0_20px_rgba(37,211,102,0.5)] hover:scale-110 transition-transform flex items-center justify-center"
       >
         <MessageCircle className="w-8 h-8" />
@@ -862,13 +917,16 @@ function AdminDashboard() {
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setInquiries(data);
-    }, (error) => {
-      console.error("Error fetching inquiries:", error);
-    });
+    const fetchInquiries = async () => {
+      try {
+        const data = await getInquiries();
+        setInquiries(data);
+      } catch (error) {
+        console.error("Error fetching inquiries:", error);
+      }
+    };
+    fetchInquiries();
+    const interval = setInterval(fetchInquiries, 5000);
 
     const qOffer = query(collection(db, 'settings'));
     const unsubOffer = onSnapshot(qOffer, (snapshot) => {
@@ -881,7 +939,7 @@ function AdminDashboard() {
     });
 
     return () => {
-      unsubscribe();
+      clearInterval(interval);
       unsubOffer();
     };
   }, []);
@@ -903,10 +961,12 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteInquiry = async (id: string) => {
+  const handleDeleteInquiry = async (id: number) => {
     if (window.confirm("Delete this inquiry?")) {
       try {
-        await deleteDoc(doc(db, 'inquiries', id));
+        await deleteInquiry(id);
+        const data = await getInquiries();
+        setInquiries(data);
       } catch (error) {
         console.error("Error deleting:", error);
       }
@@ -994,7 +1054,7 @@ function AdminDashboard() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-[#708090]">
-                          {inq.createdAt?.toDate ? inq.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                          {inq.createdAt ? new Date(inq.createdAt).toLocaleDateString() : 'Just now'}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button 
@@ -1023,7 +1083,7 @@ function AdminDashboard() {
 function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{role: string, text: string}[]>([
-    {role: 'model', text: 'Hi! I am the Dronacharya Gym Assistant. How can I help you today?'}
+    {role: 'model', text: 'Hi! I am the DRONACHARYA Gym Assistant. How can I help you today?'}
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -1036,7 +1096,7 @@ function ChatBot() {
       chatRef.current = ai.chats.create({
         model: 'gemini-3.1-pro-preview',
         config: {
-          systemInstruction: "You are a helpful assistant for 'Dronacharya The Gym' in Burari, Delhi. You know about their services (Unisex Gym, Crossfit, Aerobics, Strengthening), timings (9:30 AM - 6:30 PM), location (Near Bank of Baroda, Main Burari Road), and pricing (Monthly: ₹1500, 3-Months: ₹4000, Yearly: ₹12000). Be concise, polite, and encourage users to book a free trial."
+          systemInstruction: "You are a helpful assistant for 'DRONACHARYA The Gym' in Burari, Delhi. You know about their services (Unisex Gym, Crossfit, Aerobics, Strengthening), timings (9:30 AM - 6:30 PM), location (Near Bank of Baroda, Main Burari Road), and pricing (Monthly: ₹1500, 3-Months: ₹4000, Yearly: ₹12000). Be concise, polite, and encourage users to book a free trial."
         }
       });
     }
