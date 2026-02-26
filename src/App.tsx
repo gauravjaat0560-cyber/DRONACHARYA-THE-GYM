@@ -4,7 +4,8 @@ import { motion, AnimatePresence, useInView } from 'motion/react';
 import { 
   Dumbbell, MapPin, Clock, Instagram, MessageCircle, 
   Activity, Zap, Star, Users, ShieldCheck, ChevronRight,
-  X, Lock, LogOut, Trash2, Edit3, Check, ChevronDown, Award, Bot, Send
+  X, Lock, LogOut, Trash2, Edit3, Check, ChevronDown, Award, Bot, Send,
+  Home, Image as ImageIcon, HelpCircle
 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { 
@@ -25,62 +26,6 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-
-// --- IndexedDB Setup ---
-const DB_NAME = 'DronacharyaGymDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'inquiries';
-
-const initDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = (e: any) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-      }
-    };
-  });
-};
-
-const saveInquiry = async (data: any) => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.add({ ...data, createdAt: new Date().toISOString() });
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-};
-
-const getInquiries = async (): Promise<any[]> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.getAll();
-    request.onsuccess = () => {
-      const data = request.result;
-      data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      resolve(data);
-    };
-    request.onerror = () => reject(request.error);
-  });
-};
-
-const deleteInquiry = async (id: number) => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.delete(id);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-};
 
 function AnimatedCounter({ end, suffix = "", isFloat = false }: { end: number, suffix?: string, isFloat?: boolean }) {
   const [count, setCount] = useState(0);
@@ -127,15 +72,43 @@ export default function App() {
 
 function ThankYouPage() {
   return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center text-center p-4">
-      <div className="bg-white/5 backdrop-blur-xl p-8 border border-white/10 rounded-2xl shadow-2xl max-w-md w-full">
-        <Check className="w-16 h-16 text-green-500 mx-auto mb-6" />
-        <h1 className="text-3xl font-black uppercase tracking-tight mb-4 text-white">Thank You!</h1>
-        <p className="text-[#708090] mb-8">Your inquiry has been received. Our team will contact you shortly to schedule your free trial.</p>
-        <Link to="/" className="inline-block bg-[#FF8C00] text-black font-black uppercase tracking-widest py-3 px-8 rounded-lg hover:bg-white transition-colors shadow-[0_0_15px_rgba(255,140,0,0.4)]">
+    <div className="min-h-screen bg-[#121212] flex items-center justify-center text-center p-4 relative overflow-hidden">
+      {/* 3D Floating Elements */}
+      <motion.div 
+        animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }} 
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-20 left-10 opacity-20 pointer-events-none"
+      >
+        <Dumbbell className="w-32 h-32 text-[#FF8C00]" />
+      </motion.div>
+      <motion.div 
+        animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }} 
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-20 right-10 opacity-20 pointer-events-none"
+      >
+        <Activity className="w-40 h-40 text-[#FF8C00]" />
+      </motion.div>
+
+      <motion.div 
+        initial={{ scale: 0.8, opacity: 0, rotateX: -30 }}
+        animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+        className="bg-[#1a1a1a]/80 backdrop-blur-xl p-10 border border-[#FF8C00]/30 rounded-3xl shadow-[0_0_50px_rgba(255,140,0,0.15)] max-w-md w-full relative z-10"
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1, rotate: 360 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+          className="w-24 h-24 bg-gradient-to-br from-[#FF8C00] to-orange-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_rgba(255,140,0,0.5)]"
+        >
+          <Check className="w-12 h-12 text-white" strokeWidth={3} />
+        </motion.div>
+        <h1 className="text-4xl font-black uppercase tracking-tight mb-4 text-white">Thank You!</h1>
+        <p className="text-[#708090] mb-8 text-lg">Your inquiry has been received. Our team will contact you shortly to schedule your free trial.</p>
+        <Link to="/" className="inline-block w-full bg-[#FF8C00] text-black font-black uppercase tracking-widest py-4 px-8 rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(255,140,0,0.4)] hover:shadow-[0_0_30px_rgba(255,255,255,0.6)] hover:-translate-y-1">
           Back to Home
         </Link>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -145,6 +118,7 @@ function LandingPage() {
   const [selectedService, setSelectedService] = useState<{title: string, details: string[], icon?: React.ReactNode} | null>(null);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
 
   // Form states
   const [name, setName] = useState('');
@@ -152,6 +126,23 @@ function LandingPage() {
   const [serviceInterest, setServiceInterest] = useState('General Inquiry');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['home', 'services', 'gallery', 'trial'];
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
+            setActiveSection(section);
+          }
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'settings'));
@@ -173,10 +164,11 @@ function LandingPage() {
     
     setIsSubmitting(true);
     try {
-      await saveInquiry({
+      await addDoc(collection(db, 'inquiries'), {
         name,
         phone,
         serviceInterest,
+        createdAt: serverTimestamp(),
         status: 'new'
       });
       setName('');
@@ -203,23 +195,30 @@ function LandingPage() {
   return (
     <div className="min-h-screen bg-[#121212] text-white font-sans selection:bg-[#FF8C00] selection:text-black">
       {/* Daily Offer Banner */}
-      {dailyOffer && (
-        <div className="bg-[#FF8C00] text-black text-center py-2 px-4 font-bold text-sm uppercase tracking-wider">
-          {dailyOffer}
-        </div>
-      )}
+      <AnimatePresence>
+        {dailyOffer && (
+          <motion.div 
+            initial={{ y: -50, opacity: 0, rotateX: 90 }}
+            animate={{ y: 0, opacity: 1, rotateX: 0 }}
+            transition={{ type: "spring", stiffness: 100, damping: 10 }}
+            className="bg-gradient-to-r from-[#FF8C00] to-orange-600 text-black text-center py-3 px-4 font-black text-sm sm:text-base uppercase tracking-widest shadow-[0_4px_20px_rgba(255,140,0,0.4)] relative z-[60] origin-top"
+          >
+            {dailyOffer}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-[#121212]/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-center md:justify-between h-20">
             <div className="flex items-center gap-2">
-              <Dumbbell className="w-10 h-10 text-yellow-400 shrink-0" />
-              <div className="flex flex-col">
-                <span className="text-xl sm:text-2xl font-black tracking-wider uppercase text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-none">
+              <Dumbbell className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400 shrink-0" />
+              <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                <span className="text-lg sm:text-2xl font-black tracking-wider uppercase text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-none whitespace-nowrap">
                   DRONACHARYA THE GYM
                 </span>
-                <span className="text-[10px] font-bold text-white tracking-widest uppercase mt-1">
+                <span className="text-[9px] sm:text-[10px] font-bold text-white tracking-widest uppercase mt-1 whitespace-nowrap">
                   Chain of Health Clubs
                 </span>
               </div>
@@ -254,14 +253,30 @@ function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#121212] via-[#121212]/50 to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        {/* 3D Floating Elements */}
+        <motion.div 
+          animate={{ y: [0, -30, 0], rotate: [0, 15, 0] }} 
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 right-[10%] opacity-30 pointer-events-none z-0 hidden md:block"
+        >
+          <Dumbbell className="w-48 h-48 text-[#FF8C00] drop-shadow-[0_0_30px_rgba(255,140,0,0.5)]" />
+        </motion.div>
+        <motion.div 
+          animate={{ y: [0, 40, 0], rotate: [0, -20, 0] }} 
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-1/4 left-[5%] opacity-20 pointer-events-none z-0 hidden md:block"
+        >
+          <Activity className="w-64 h-64 text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]" />
+        </motion.div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center md:text-left">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="max-w-3xl"
+            className="max-w-3xl mx-auto md:mx-0"
           >
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[1] tracking-tighter mb-6 break-words">
+            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[1] tracking-tighter mb-6 break-words">
               DRONACHARYA <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C00] to-orange-400">
                 The Gym
@@ -330,8 +345,24 @@ function LandingPage() {
       </div>
 
       {/* Detailed Services Grid */}
-      <section id="services" className="py-24 bg-[#121212]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="services" className="py-24 bg-[#121212] relative overflow-hidden">
+        {/* 3D Floating Elements */}
+        <motion.div 
+          animate={{ y: [0, 20, 0], rotate: [0, 10, 0] }} 
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-40 left-10 opacity-10 pointer-events-none z-0 hidden lg:block"
+        >
+          <Dumbbell className="w-40 h-40 text-white" />
+        </motion.div>
+        <motion.div 
+          animate={{ y: [0, -20, 0], rotate: [0, -15, 0] }} 
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-40 right-10 opacity-10 pointer-events-none z-0 hidden lg:block"
+        >
+          <Activity className="w-48 h-48 text-[#FF8C00]" />
+        </motion.div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-oswald font-bold uppercase tracking-[0.2em] mb-4 bg-clip-text text-transparent bg-gradient-to-b from-gray-100 to-gray-500">
               OUR <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FF8C00] to-orange-600">SERVICES</span>
@@ -373,13 +404,13 @@ function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
                 onClick={() => setSelectedService(service)}
-                className="group cursor-pointer bg-white/5 backdrop-blur-md p-8 border border-white/10 hover:border-[#FF8C00] transition-all duration-300 hover:scale-[1.05] relative overflow-hidden shadow-lg hover:shadow-[0_0_30px_rgba(255,140,0,0.15)] rounded-xl"
+                className="group cursor-pointer bg-[#1a1a1a]/60 backdrop-blur-md p-8 border border-[#FF8C00]/20 hover:border-[#FF8C00] transition-all duration-300 hover:scale-[1.05] relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(255,140,0,0.15)] rounded-2xl"
               >
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#FF8C00]/10 rounded-full blur-2xl group-hover:bg-[#FF8C00]/20 transition-colors" />
                 <div className="text-[#FF8C00] mb-6 relative z-10 drop-shadow-[0_0_15px_rgba(255,140,0,0.3)] group-hover:drop-shadow-[0_0_25px_rgba(255,140,0,0.9)] transition-all duration-300">
                   {service.icon}
                 </div>
-                <h3 className="text-xl font-black uppercase tracking-wider mb-3 relative z-10">{service.title}</h3>
+                <h3 className="text-xl font-black uppercase tracking-wider mb-3 relative z-10 text-white">{service.title}</h3>
                 <p className="text-[#708090] text-sm leading-relaxed mb-6 relative z-10">{service.desc}</p>
                 <div className="flex items-center gap-2 text-[#FF8C00] text-sm font-bold uppercase tracking-wider group-hover:translate-x-2 transition-transform relative z-10">
                   View Details <ChevronRight className="w-4 h-4" />
@@ -716,13 +747,39 @@ function LandingPage() {
         </div>
       </footer>
 
+      {/* Floating Bottom Navigation Bar (Mobile) */}
+      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-sm">
+        <div className="bg-white/10 backdrop-blur-xl border border-[#FF8C00] rounded-full px-6 py-3 flex items-center justify-between shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+          <a href="#home" className="flex flex-col items-center gap-1 group relative">
+            <Home className={`w-6 h-6 transition-all duration-300 ${activeSection === 'home' ? 'text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.8)] -translate-y-1' : 'text-gray-400 group-hover:text-[#FF8C00]'}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${activeSection === 'home' ? 'text-[#FF8C00]' : 'text-gray-400 group-hover:text-[#FF8C00]'}`}>Home</span>
+            {activeSection === 'home' && <motion.div layoutId="nav-indicator" className="absolute -bottom-2 w-1 h-1 bg-[#FF8C00] rounded-full shadow-[0_0_10px_rgba(255,140,0,1)]" />}
+          </a>
+          <a href="#services" className="flex flex-col items-center gap-1 group relative">
+            <Users className={`w-6 h-6 transition-all duration-300 ${activeSection === 'services' ? 'text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.8)] -translate-y-1' : 'text-gray-400 group-hover:text-[#FF8C00]'}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${activeSection === 'services' ? 'text-[#FF8C00]' : 'text-gray-400 group-hover:text-[#FF8C00]'}`}>About</span>
+            {activeSection === 'services' && <motion.div layoutId="nav-indicator" className="absolute -bottom-2 w-1 h-1 bg-[#FF8C00] rounded-full shadow-[0_0_10px_rgba(255,140,0,1)]" />}
+          </a>
+          <a href="#gallery" className="flex flex-col items-center gap-1 group relative">
+            <ImageIcon className={`w-6 h-6 transition-all duration-300 ${activeSection === 'gallery' ? 'text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.8)] -translate-y-1' : 'text-gray-400 group-hover:text-[#FF8C00]'}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${activeSection === 'gallery' ? 'text-[#FF8C00]' : 'text-gray-400 group-hover:text-[#FF8C00]'}`}>Gallery</span>
+            {activeSection === 'gallery' && <motion.div layoutId="nav-indicator" className="absolute -bottom-2 w-1 h-1 bg-[#FF8C00] rounded-full shadow-[0_0_10px_rgba(255,140,0,1)]" />}
+          </a>
+          <a href="#trial" className="flex flex-col items-center gap-1 group relative">
+            <Send className={`w-6 h-6 transition-all duration-300 ${activeSection === 'trial' ? 'text-[#FF8C00] drop-shadow-[0_0_10px_rgba(255,140,0,0.8)] -translate-y-1' : 'text-gray-400 group-hover:text-[#FF8C00]'}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${activeSection === 'trial' ? 'text-[#FF8C00]' : 'text-gray-400 group-hover:text-[#FF8C00]'}`}>Contact</span>
+            {activeSection === 'trial' && <motion.div layoutId="nav-indicator" className="absolute -bottom-2 w-1 h-1 bg-[#FF8C00] rounded-full shadow-[0_0_10px_rgba(255,140,0,1)]" />}
+          </a>
+        </div>
+      </div>
+
       {/* Floating WhatsApp Button */}
       <a
         href="https://wa.me/919818187123"
         target="_blank"
         rel="noopener noreferrer"
         title="Chat with DRONACHARYA Gym"
-        className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-[0_0_20px_rgba(37,211,102,0.5)] hover:scale-110 transition-transform flex items-center justify-center"
+        className="fixed bottom-40 right-6 md:bottom-24 md:right-6 z-[70] bg-[#25D366] text-white p-4 rounded-full shadow-[0_0_20px_rgba(37,211,102,0.5)] hover:scale-110 transition-transform flex items-center justify-center"
       >
         <MessageCircle className="w-8 h-8" />
       </a>
@@ -822,6 +879,7 @@ function LandingPage() {
 
 function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdminOverride, setIsAdminOverride] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -844,17 +902,20 @@ function AdminPage() {
           </Link>
         </div>
 
-        {!user ? (
-          <LoginForm />
+        {(!user && !isAdminOverride) ? (
+          <LoginForm onOverride={() => setIsAdminOverride(true)} />
         ) : (
-          <AdminDashboard />
+          <AdminDashboard onLogout={() => {
+            setIsAdminOverride(false);
+            signOut(auth);
+          }} />
         )}
       </div>
     </div>
   );
 }
 
-function LoginForm() {
+function LoginForm({ onOverride }: { onOverride: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -864,28 +925,35 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (err: any) {
-      setError(err.message || "Failed to login");
-    } finally {
+    
+    // Default Login Credentials Check
+    if (email === 'admin' && password === 'password') {
+      onOverride();
       setLoading(false);
+      return;
+    } else {
+      setError("Invalid credentials. Please use the default admin login.");
+      setLoading(false);
+      return;
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 bg-[#1a1a1a] p-8 border border-white/10">
-      <h3 className="text-xl font-bold mb-6 text-center uppercase tracking-wider">Owner Login</h3>
-      {error && <div className="bg-red-500/10 text-red-500 p-3 mb-4 text-sm border border-red-500/20">{error}</div>}
-      <form onSubmit={handleLogin} className="space-y-4">
+    <div className="max-w-md mx-auto mt-20 bg-[#1a1a1a]/80 backdrop-blur-xl p-10 border border-[#FF8C00]/30 rounded-3xl shadow-[0_0_50px_rgba(255,140,0,0.15)] relative overflow-hidden">
+      <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#FF8C00]/10 rounded-full blur-3xl" />
+      <h3 className="text-2xl font-black mb-2 text-center uppercase tracking-wider text-white">Owner Login</h3>
+      <p className="text-center text-[#708090] text-sm mb-8">Enter your credentials to access the dashboard.</p>
+      {error && <div className="bg-red-500/10 text-red-500 p-3 mb-4 text-sm border border-red-500/20 rounded-lg">{error}</div>}
+      <form onSubmit={handleLogin} className="space-y-5 relative z-10">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Email</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Username / Email</label>
           <input 
-            type="email" 
+            type="text" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-[#FF8C00]"
+            className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-[#FF8C00] rounded-xl transition-colors"
             required
+            placeholder="admin"
           />
         </div>
         <div>
@@ -894,39 +962,37 @@ function LoginForm() {
             type="password" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-[#FF8C00]"
+            className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-[#FF8C00] rounded-xl transition-colors"
             required
+            placeholder="••••••••"
           />
         </div>
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full bg-[#FF8C00] text-black font-bold uppercase tracking-widest py-3 mt-4 hover:bg-white transition-colors disabled:opacity-50"
+          className="w-full bg-[#FF8C00] text-black font-black uppercase tracking-widest py-4 mt-4 rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(255,140,0,0.4)] hover:shadow-[0_0_30px_rgba(255,255,255,0.6)] disabled:opacity-50"
         >
-          {loading ? 'Authenticating...' : 'Login'}
+          {loading ? 'Authenticating...' : 'Secure Login'}
         </button>
       </form>
     </div>
   );
 }
 
-function AdminDashboard() {
+function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [offerText, setOfferText] = useState("");
   const [offerId, setOfferId] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    const fetchInquiries = async () => {
-      try {
-        const data = await getInquiries();
-        setInquiries(data);
-      } catch (error) {
-        console.error("Error fetching inquiries:", error);
-      }
-    };
-    fetchInquiries();
-    const interval = setInterval(fetchInquiries, 5000);
+    const q = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setInquiries(data);
+    }, (error) => {
+      console.error("Error fetching inquiries:", error);
+    });
 
     const qOffer = query(collection(db, 'settings'));
     const unsubOffer = onSnapshot(qOffer, (snapshot) => {
@@ -939,7 +1005,7 @@ function AdminDashboard() {
     });
 
     return () => {
-      clearInterval(interval);
+      unsubscribe();
       unsubOffer();
     };
   }, []);
@@ -961,12 +1027,10 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteInquiry = async (id: number) => {
+  const handleDeleteInquiry = async (id: string) => {
     if (window.confirm("Delete this inquiry?")) {
       try {
-        await deleteInquiry(id);
-        const data = await getInquiries();
-        setInquiries(data);
+        await deleteDoc(doc(db, 'inquiries', id));
       } catch (error) {
         console.error("Error deleting:", error);
       }
@@ -977,18 +1041,34 @@ function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <div className="bg-[#1a1a1a] px-6 py-4 border border-white/10 text-center">
-            <p className="text-3xl font-black text-[#FF8C00]">{inquiries.length}</p>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#708090] mt-1">Total Leads</p>
+          <div className="bg-[#1a1a1a]/80 backdrop-blur-md px-8 py-6 border border-[#FF8C00]/30 rounded-2xl shadow-[0_0_30px_rgba(255,140,0,0.1)] relative overflow-hidden group">
+            <div className="absolute -right-4 -top-4 w-16 h-16 bg-[#FF8C00]/20 rounded-full blur-xl group-hover:bg-[#FF8C00]/30 transition-colors" />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-[#FF8C00]/10 rounded-xl">
+                <Users className="w-8 h-8 text-[#FF8C00]" />
+              </div>
+              <div>
+                <p className="text-4xl font-black text-white">{inquiries.length}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#FF8C00] mt-1">Total Leads</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-[#1a1a1a] px-6 py-4 border border-white/10 text-center">
-            <p className="text-3xl font-black text-[#FF8C00]">272+</p>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#708090] mt-1">Total Reviews</p>
+          <div className="bg-[#1a1a1a]/80 backdrop-blur-md px-8 py-6 border border-[#FF8C00]/30 rounded-2xl shadow-[0_0_30px_rgba(255,140,0,0.1)] relative overflow-hidden group hidden sm:block">
+            <div className="absolute -right-4 -top-4 w-16 h-16 bg-[#FF8C00]/20 rounded-full blur-xl group-hover:bg-[#FF8C00]/30 transition-colors" />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-[#FF8C00]/10 rounded-xl">
+                <Activity className="w-8 h-8 text-[#FF8C00]" />
+              </div>
+              <div>
+                <p className="text-4xl font-black text-white">272+</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#FF8C00] mt-1">Recent Activity</p>
+              </div>
+            </div>
           </div>
         </div>
         <button 
-          onClick={() => signOut(auth)}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 font-bold uppercase tracking-wider text-sm transition-colors"
+          onClick={onLogout}
+          className="flex items-center gap-2 px-6 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl font-bold uppercase tracking-wider text-sm text-red-500 transition-colors"
         >
           <LogOut className="w-4 h-4" /> Logout
         </button>
@@ -997,20 +1077,20 @@ function AdminDashboard() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Daily Offer Settings */}
         <div className="lg:col-span-1">
-          <div className="bg-[#1a1a1a] p-6 border border-white/10">
+          <div className="bg-[#1a1a1a]/80 backdrop-blur-md p-6 border border-[#FF8C00]/20 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)]">
             <h4 className="font-bold uppercase tracking-wider mb-4 flex items-center gap-2 text-[#FF8C00]">
-              <Edit3 className="w-4 h-4" /> Manage Daily Offer
+              <Edit3 className="w-5 h-5" /> Manage Daily Offer
             </h4>
             <textarea
               value={offerText}
               onChange={(e) => setOfferText(e.target.value)}
-              className="w-full bg-[#121212] border border-white/10 p-4 text-sm text-white focus:outline-none focus:border-[#FF8C00] min-h-[120px] mb-4 resize-none"
+              className="w-full bg-[#121212] border border-white/10 p-4 text-sm text-white focus:outline-none focus:border-[#FF8C00] rounded-xl min-h-[120px] mb-4 resize-none transition-colors"
               placeholder="Enter offer text..."
             />
             <button
               onClick={handleUpdateOffer}
               disabled={updating}
-              className="w-full bg-[#FF8C00] text-black font-bold text-sm uppercase tracking-wider py-3 hover:bg-white transition-colors"
+              className="w-full bg-[#FF8C00] text-black font-black text-sm uppercase tracking-wider py-4 rounded-xl hover:bg-white transition-all shadow-[0_0_15px_rgba(255,140,0,0.3)]"
             >
               {updating ? 'Saving...' : 'Update Offer'}
             </button>
@@ -1019,15 +1099,15 @@ function AdminDashboard() {
 
         {/* Inquiries Table */}
         <div className="lg:col-span-2">
-          <div className="bg-[#1a1a1a] border border-white/10 overflow-hidden">
-            <div className="p-6 border-b border-white/10">
+          <div className="bg-[#1a1a1a]/80 backdrop-blur-md border border-[#FF8C00]/20 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div className="p-6 border-b border-white/10 bg-black/20">
               <h4 className="font-bold uppercase tracking-wider flex items-center gap-2 text-[#FF8C00]">
-                <Users className="w-4 h-4" /> Member Inquiries
+                <Users className="w-5 h-5" /> Member Inquiries
               </h4>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-[#121212] text-[#708090] uppercase tracking-wider font-bold">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-[#121212]/80 text-[#708090] uppercase tracking-wider font-bold">
                   <tr>
                     <th className="px-6 py-4">Name</th>
                     <th className="px-6 py-4">Phone</th>
@@ -1039,27 +1119,28 @@ function AdminDashboard() {
                 <tbody className="divide-y divide-white/5">
                   {inquiries.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-[#708090] italic">
+                      <td colSpan={5} className="px-6 py-12 text-center text-[#708090] italic">
+                        <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
                         No inquiries found.
                       </td>
                     </tr>
                   ) : (
                     inquiries.map((inq) => (
                       <tr key={inq.id} className="hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-4 font-bold">{inq.name}</td>
+                        <td className="px-6 py-4 font-bold text-white">{inq.name}</td>
                         <td className="px-6 py-4 font-mono text-[#FF8C00]">{inq.phone}</td>
                         <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs">
+                          <span className="px-3 py-1 bg-[#FF8C00]/10 border border-[#FF8C00]/20 rounded-full text-xs text-[#FF8C00] font-bold">
                             {inq.serviceInterest || 'General'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-[#708090]">
-                          {inq.createdAt ? new Date(inq.createdAt).toLocaleDateString() : 'Just now'}
+                          {inq.createdAt?.toDate ? inq.createdAt.toDate().toLocaleDateString() : 'Just now'}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button 
                             onClick={() => handleDeleteInquiry(inq.id)}
-                            className="text-[#708090] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="text-[#708090] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/10 rounded-lg"
                             title="Delete inquiry"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1132,7 +1213,7 @@ function ChatBot() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-24 right-6 z-50 bg-[#FF8C00] text-black p-4 rounded-full shadow-[0_0_20px_rgba(255,140,0,0.5)] hover:scale-110 transition-transform flex items-center justify-center ${isOpen ? 'hidden' : 'flex'}`}
+        className={`fixed bottom-24 right-6 md:bottom-6 md:right-6 z-50 bg-[#FF8C00] text-black p-4 rounded-full shadow-[0_0_20px_rgba(255,140,0,0.5)] hover:scale-110 transition-transform flex items-center justify-center ${isOpen ? 'hidden' : 'flex'}`}
       >
         <Bot className="w-8 h-8" />
       </button>
@@ -1143,7 +1224,7 @@ function ChatBot() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-24 right-6 z-[100] w-[350px] h-[500px] bg-[#1a1a1a] border border-white/10 shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-6 md:bottom-24 md:right-6 z-[100] w-[350px] h-[500px] bg-[#1a1a1a] border border-white/10 shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="bg-[#FF8C00] text-black p-4 flex items-center justify-between">
