@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-oswald: "Oswald", sans-serif;
+  --color-primary: #FF8C00;
+  --color-slate-gray: #708090;
+}
+
+@layer utilities {
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
+  }
+  
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  @keyframes floating {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+
+  .animate-floating {
+    animation: floating 3s ease-in-out infinite;
+  }
+
+  .tilt-card {
+    transition: transform 0.5s ease;
+    transform-style: preserve-3d;
+  }
+  
+  .tilt-card:hover {
+    transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale3d(1.05, 1.05, 1.05);
+  }
+
+  .ripple-btn {
+    position: relative;
+    overflow: hidden;
+    transform: translate3d(0, 0, 0);
+  }
+  .ripple-btn:active {
+    transform: scale(0.95);
+    transition: transform 0.1s;
+  }
+  .ripple-btn::after {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform .5s, opacity 1s;
+  }
+  .ripple-btn:active::after {
+    transform: scale(0, 0);
+    opacity: .3;
+    transition: 0s;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
